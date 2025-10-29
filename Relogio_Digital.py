@@ -58,7 +58,7 @@ def mostrar_horario(hora_str):
 try:
     while True:
         agora = datetime.now()
-        hora = agora.strftime("000000") # Escreva a hora aqui
+        hora = agora.strftime("%H%M%S")
         mostrar_horario(hora)
 except KeyboardInterrupt:
     GPIO.cleanup()
