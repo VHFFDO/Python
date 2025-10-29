@@ -1,80 +1,62 @@
-import tm1638
-from machine import Pin, Timer
+import RPi.GPIO as GPIO
+import time
+from datetime import datetime
 
-tm = tm1638.TM1638(stb = Pin(20), clk = Pin(19), dio = Pin(18))
-tm.brightness(0)
-tm.clear()
+# --- CONFIGURAÇÃO DOS PINOS ---
 
-# Varíaveis Globais
-flag = segundos = minutos = horas = 0
+# Pinos dos segmentos: a, b, c, d, e, f, g
+segments = [2, 3, 4, 17, 27, 22, 10]
 
-# Interrupção por Timer
-base_tempo = Timer()
+# Pinos dos 6 dígitos (catodos comuns)
+# Da esquerda para a direita: H1, H2, M1, M2, S1, S2
+displays = [9, 11, 5, 6, 13, 19]
 
-def int_base_tempo(arg):
-    global segundos, minutos, horas
+# Configuração dos GPIOs
+GPIO.setmode(GPIO.BCM)
 
-    segundos += 1
+for pin in segments + displays:
+    GPIO.setup(pin, GPIO.OUT)
+    GPIO.output(pin, 0)
 
-    if segundos > 59:
-        segundos = 0
-        minutos += 1
+# --- TABELA DOS NÚMEROS ---
+# 1 = acende o segmento, 0 = apaga
+numbers = {
+    0: [1, 1, 1, 1, 1, 1, 0],
+    1: [0, 1, 1, 0, 0, 0, 0],
+    2: [1, 1, 0, 1, 1, 0, 1],
+    3: [1, 1, 1, 1, 0, 0, 1],
+    4: [0, 1, 1, 0, 0, 1, 1],
+    5: [1, 0, 1, 1, 0, 1, 1],
+    6: [1, 0, 1, 1, 1, 1, 1],
+    7: [1, 1, 1, 0, 0, 0, 0],
+    8: [1, 1, 1, 1, 1, 1, 1],
+    9: [1, 1, 1, 1, 0, 1, 1]
+}
 
-    if minutos > 59:
-        minutos = 0
-        horas += 1
+# --- FUNÇÕES ---
 
-    if horas > 23:
-        horas = minutos = segundos = 0
+def mostrar_digito(valor, display_index):
+    """Acende o dígito específico com o número desejado"""
+    if valor not in numbers:
+        valor = 0
+    # Ativa o número
+    for i, seg in enumerate(segments):
+        GPIO.output(seg, numbers[valor][i])
+    # Liga o display atual
+    GPIO.output(displays[display_index], 1)
+    time.sleep(0.003)  # tempo de exibição (multiplex)
+    GPIO.output(displays[display_index], 0)
 
-base_tempo.init(mode = Timer.PERIODIC, period = 1000, callback = int_base_tempo)
-# Fim interrupção Timer
+def mostrar_horario(hora_str):
+    """Mostra todos os 6 dígitos rapidamente"""
+    for i, ch in enumerate(hora_str):
+        mostrar_digito(int(ch), i)
 
-# Funções dos Botões
-botoes = Timer()
-
-def int_botoes(arg):
-    global flag, segundos, minutos, horas
-
-    if bt != 0:
-        flag = bt
-
-    elif bt == 0 and flag == 1:
-        flag = 0
-        horas += 1
-
-    elif bt == 0 and flag == 2:
-        flag = 0
-        minutos += 1
-
-    elif bt == 0 and flag == 4:
-        flag = 0
-        segundos = minutos = horas = 0
-
-botoes.init(mode = Timer.PERIODIC, period = 60, callback = int_botoes)
-# Fim funções dos Botoes
-
-...
-25 / 10 = 2.5          (float)
-str(2.5) = "2.5"       (string)
-
-0123
-"2.5"
-
-"2.5"[2:3] = 5         (unidade)
-"2.5"[0:1] = 2         (dezena)
-...
-
-while True:
-    # Leitura dos Botoes
-    bt = tm.keys()
-    # Unidade e Dezena dos Segundos
-    tm.show(str(segundos / 10)[2:3], 7)
-    tm.show(str(segundos / 10)[0:1], 6)
-    # Unidade e Dezena dos Minutos
-    tm.show(str(minutos / 10)[2:3], 3)
-    tm.show(str(minutos / 10)[0:1], 2)
-    # Unidade e Dezena dos Horas
-    tm.show(str(horas / 10)[2:3] + '.', 1)
-    tm.show(str(horas / 10)[0:1], 0)
-
+# --- LOOP PRINCIPAL ---
+try:
+    while True:
+        agora = datetime.now()
+        hora = agora.strftime("%H%M%S")  # Ex: "134529"
+        mostrar_horario(hora)
+except KeyboardInterrupt:
+    GPIO.cleanup()
