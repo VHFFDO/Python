@@ -2,13 +2,12 @@ import RPi.GPIO as GPIO
 import time
 from datetime import datetime
 
-# --- CONFIGURAÇÃO DOS PINOS ---
-
-# Pinos dos segmentos: a, b, c, d, e, f, g
+# Configuração dos pinos
+# - Pinos dos segmentos: a, b, c, d, e, f, g
 segments = [2, 3, 4, 17, 27, 22, 10]
 
-# Pinos dos 6 dígitos (catodos comuns)
-# Da esquerda para a direita: H1, H2, M1, M2, S1, S2
+#Pinos dos 6 dígitos (catodos comuns)
+# - Da esquerda para a direita: H1, H2, M1, M2, S1, S2
 displays = [9, 11, 5, 6, 13, 19]
 
 # Configuração dos GPIOs
@@ -16,10 +15,9 @@ GPIO.setmode(GPIO.BCM)
 
 for pin in segments + displays:
     GPIO.setup(pin, GPIO.OUT)
-    GPIO.output(pin, 0)
-
-# --- TABELA DOS NÚMEROS ---
-# 1 = acende o segmento, 0 = apaga
+    GPIO.output(pin, GPIO.LOW)
+    
+# Tabela dos números
 numbers = {
     0: [1, 1, 1, 1, 1, 1, 0],
     1: [0, 1, 1, 0, 0, 0, 0],
@@ -33,30 +31,34 @@ numbers = {
     9: [1, 1, 1, 1, 0, 1, 1]
 }
 
-# --- FUNÇÕES ---
-
+# Funções
 def mostrar_digito(valor, display_index):
     """Acende o dígito específico com o número desejado"""
     if valor not in numbers:
         valor = 0
+    
     # Ativa o número
     for i, seg in enumerate(segments):
-        GPIO.output(seg, numbers[valor][i])
+        if numbers[valor][i] == 1:
+            GPIO.output(seg, GPIO.HIGH)
+        else:
+            GPIO.output(seg, GPIO.LOW)
+        
     # Liga o display atual
-    GPIO.output(displays[display_index], 1)
-    time.sleep(0.003)  # tempo de exibição (multiplex)
-    GPIO.output(displays[display_index], 0)
-
+    GPIO.output(displays[display_index], GPIO.HIGH)
+    time.sleep(0.003) # Tempo de exibição (multiplex)
+    GPIO.output(displays[display_index], GPIO.LOW)
+    
 def mostrar_horario(hora_str):
     """Mostra todos os 6 dígitos rapidamente"""
     for i, ch in enumerate(hora_str):
         mostrar_digito(int(ch), i)
-
-# --- LOOP PRINCIPAL ---
+        
+#Loop principal
 try:
     while True:
         agora = datetime.now()
-        hora = agora.strftime("%H%M%S")  # Ex: "134529"
+        hora = agora.strftime("000000") # Escreva a hora aqui
         mostrar_horario(hora)
 except KeyboardInterrupt:
     GPIO.cleanup()
