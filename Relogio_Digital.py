@@ -38,7 +38,7 @@ def set_segments_for_digit(value):
     """Define os pinos dos segmentos para o número value (0-9)."""
     pattern = numbers.get(value, numbers[0])
     for seg_pin, seg_val in zip(segments, pattern):
-        GPIO.output(seg_pin, GPIO.HIGH if sg_val else GPIO.LOW)
+        GPIO.output(seg_pin, GPIO.HIGH if seg_val else GPIO.LOW)
     
 def mostrar_digito(valor, display_index, on_time = 0.003):
     """Acende o dígito específico com o número desejado"""
@@ -69,7 +69,7 @@ try:
             set_segments_for_digit(int(hora[i]))
             GPIO.output(displays[i], GPIO.HIGH)
             time.sleep(ON_TIME)
-            GPIO.output(display[i], GPIO.LOW)
+            GPIO.output(displays[i], GPIO.LOW)
             
 except KeyboardInterrupt:
     GPIO.cleanup()
